@@ -42,7 +42,7 @@ const server=http.createServer((req,res)=>{
     }
     else{
         res.statusCode=404;
-        res.end("<h1>Error Page</h1>")
+        res.end("Error Page")
     }
     
 })
