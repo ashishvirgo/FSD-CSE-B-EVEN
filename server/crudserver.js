@@ -1,13 +1,30 @@
 import http from "http";
+import fs from "fs/promises"
 const port=5001;
-const users=[
-    {id:1,name: "ABC",email:"abc@gmail.com"},
-    {id:2,name: "ABC1",email:"abc1@gmail.com"},
-    {id:3,name: "ABC2",email:"abc2@gmail.com"},
-]
-const server=http.createServer((req,res)=>{
+const users=[];
+async function saveData(user){
+    try{
+       const resdata=await fs.writeFile("data.json",JSON.stringify(user));
+       console.log(resdata)
+    }
+    catch(err){
+        console.log("Error=",err.message)
+    }
+}
+async function readData(){
+    try{
+    const data=await fs.readFile("data.json","utf-8");
+    const parsedata=JSON.parse(data);
+    users.push(parsedata);
+    }
+    catch(err){
+    console.log("Error=",err.message)
+    }
+}
+const server=http.createServer(async(req,res)=>{
 const url=req.url;
 const method=req.method;
+await readData();
 if(url=="/users" && method=="GET"){
     res.end(JSON.stringify(users))
 }
@@ -28,7 +45,7 @@ else if(url.startsWith("/users/") && method=="PUT"){
    req.on("data",(chunk)=>{
     body=body+chunk;
    })
-   req.on("end",()=>{
+   req.on("end",async()=>{
     const userIndex=users.findIndex(u=>u.id==id);
    if(userIndex==-1){
     res.statusCode=400;
@@ -37,6 +54,7 @@ else if(url.startsWith("/users/") && method=="PUT"){
    }
    const updateddata=JSON.parse(body);
    users[userIndex]={...users[userIndex],...updateddata};
+   await saveData(users);
    console.log(`user id ${id} updated successfully`)
    res.end(`user id ${id} updated successfully`)
    })
@@ -52,6 +70,7 @@ else if(url.startsWith("/users/") && method=="DELETE"){
         return res.end(`user id ${id} not found`)
     }
     users.splice(userIndex,1);
+    await saveData(users);
     console.log(`user id ${id} deleted successfully`)
     res.end(`user id ${id} deleted successfully`)
 }
@@ -60,7 +79,7 @@ else if(url=="/createuser" && method=="POST"){
     req.on("data",(chunk)=>{
      body=body+chunk;
     })
-    req.on("end",()=>{
+    req.on("end",async()=>{
         const data=JSON.parse(body);
          if(data.name==null || data.email==null){
             res.statusCode=400;
@@ -73,6 +92,7 @@ else if(url=="/createuser" && method=="POST"){
         }
        
         users.push(newUser);
+        await saveData(users);
         res.statusCode=201;
         console.log(`user id ${newUser.id} created successfully`)
         res.end(`user id ${newUser.id} created successfully`)
